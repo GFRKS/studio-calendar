@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Calendar } from 'lucide-react';
 
 const COLORS = {
@@ -19,17 +19,23 @@ const StudioCalendar = () => {
   ]);
 
   // Initialize from localStorage on client-side only
-  React.useEffect(() => {
+  useEffect(() => {
     if (typeof window !== 'undefined') {
       const storedUsers = localStorage.getItem('studioUsers');
       const storedColor = localStorage.getItem('studioUserColor');
+      const storedName = localStorage.getItem('studioUserName');
+      const storedBlocks = localStorage.getItem('studioBlocks');
       
       if (storedUsers) {
         setUsers(JSON.parse(storedUsers));
       }
-      if (storedColor) {
+      if (storedColor && storedName) {
         setUserColor(storedColor);
+        setUserName(storedName);
         setNamePrompt(false);
+      }
+      if (storedBlocks) {
+        setSelectedBlocks(JSON.parse(storedBlocks));
       }
     }
   }, []);
@@ -86,6 +92,7 @@ const StudioCalendar = () => {
       // Save to localStorage on client-side only
       if (typeof window !== 'undefined') {
         localStorage.setItem('studioUserColor', existingUser.color);
+        localStorage.setItem('studioUserName', name);
       }
       return;
     }
@@ -112,6 +119,7 @@ const StudioCalendar = () => {
       if (typeof window !== 'undefined') {
         localStorage.setItem('studioUsers', JSON.stringify(newUsers));
         localStorage.setItem('studioUserColor', selectedSlot.color);
+        localStorage.setItem('studioUserName', name);
       }
     } else {
       alert('No available slots. Please try again later.');
@@ -127,6 +135,12 @@ const StudioCalendar = () => {
       } else {
         newBlocks[key] = { user: userName, color: userColor };
       }
+
+      // Save to localStorage on client-side only
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('studioBlocks', JSON.stringify(newBlocks));
+      }
+
       return newBlocks;
     });
   };
