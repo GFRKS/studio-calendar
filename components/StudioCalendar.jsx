@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Calendar } from 'lucide-react';
 
 const COLORS = {
@@ -7,45 +7,75 @@ const COLORS = {
   green: 'rgb(74, 222, 128)'   // Lighter green
 };
 
-const generateUserId = () => {
-  return Math.random().toString(36).substring(2, 15);
-};
-
 const StudioCalendar = () => {
-  const [initialized, setInitialized] = useState(false);
   const [namePrompt, setNamePrompt] = useState(true);
   const [userName, setUserName] = useState('');
-  const [userId] = useState(() => {
-    const stored = localStorage.getItem('studioUserId');
-    return stored || generateUserId();
-  });
-  const [userColor, setUserColor] = useState(() => {
-    return localStorage.getItem('studioUserColor') || '';
-  });
+  const [userColor, setUserColor] = useState('');
   const [selectedBlocks, setSelectedBlocks] = useState({});
-  const [users, setUsers] = useState(() => {
-    const stored = localStorage.getItem('studioUsers');
-    return stored ? JSON.parse(stored) : [
-      { id: 'slot1', color: COLORS.blue, name: '', taken: false },
-      { id: 'slot2', color: COLORS.red, name: '', taken: false },
-      { id: 'slot3', color: COLORS.green, name: '', taken: false }
-    ];
-  });
+  const [users, setUsers] = useState([
+    { id: 'slot1', color: COLORS.blue, name: '', taken: false },
+    { id: 'slot2', color: COLORS.red, name: '', taken: false },
+    { id: 'slot3', color: COLORS.green, name: '', taken: false }
+  ]);
 
-  useEffect(() => {
-    localStorage.setItem('studioUserId', userId);
-    localStorage.setItem('studioUsers', JSON.stringify(users));
-    if (userColor) {
-      localStorage.setItem('studioUserColor', userColor);
+  const getCurrentDate = () => {
+    return new Date(2025, 0, 8); // January 8, 2025 - Replace with new Date() in production
+  };
+
+  const getStartOfCurrentWeek = (today) => {
+    const currentDay = today.getDay();
+    const monday = new Date(today);
+    
+    // Calculate how many days to subtract to get to Monday
+    // If today is Sunday (0), we want the next day (Monday)
+    // For all other days, we want the current week's Monday
+    const daysToMonday = currentDay === 0 ? 1 : (currentDay - 1);
+    
+    // Move to Monday
+    monday.setDate(today.getDate() - daysToMonday);
+    
+    // Reset time to start of day
+    monday.setHours(0, 0, 0, 0);
+    
+    return monday;
+  };
+
+  const getRollingDates = () => {
+    const dates = [];
+    const today = getCurrentDate();
+    
+    // Get Monday of the current week
+    const firstDay = getStartOfCurrentWeek(today);
+    
+    // Generate exactly 35 days (5 weeks) starting from current week's Monday
+    for (let i = 0; i < 35; i++) {
+      const date = new Date(firstDay);
+      date.setDate(firstDay.getDate() + i);
+      dates.push(date);
     }
-  }, [userId, users, userColor]);
+    
+    return dates;
+  };
 
   const initializeUser = (name) => {
+    // Check if user already exists
+    const existingUser = users.find(user => user.name === name);
+    
+    if (existingUser) {
+      // User exists, load their color
+      setUserColor(existingUser.color);
+      setUserName(name);
+      setNamePrompt(false);
+      return;
+    }
+    
+    // Find available slot for new user
     const availableSlots = users.filter(user => !user.taken);
     if (availableSlots.length > 0) {
-      const randomIndex = Math.floor(Math.random() * availableSlots.length);
-      const selectedSlot = availableSlots[randomIndex];
+      // Assign first available slot
+      const selectedSlot = availableSlots[0];
       
+      // Update users array
       const newUsers = users.map(user => 
         user.id === selectedSlot.id 
           ? { ...user, name: name, taken: true }
@@ -56,54 +86,31 @@ const StudioCalendar = () => {
       setUserColor(selectedSlot.color);
       setUserName(name);
       setNamePrompt(false);
-      setInitialized(true);
+    } else {
+      alert('No available slots. Please try again later.');
     }
-  };
-
-  const getRollingDates = () => {
-    const dates = [];
-    const today = new Date();
-    
-    // Add past 7 days
-    for (let i = 7; i > 0; i--) {
-      const date = new Date(today);
-      date.setDate(today.getDate() - i);
-      dates.push(date);
-    }
-    
-    // Add today
-    dates.push(today);
-    
-    // Add next 27 days (instead of 28) to make it exactly 35 days total
-    for (let i = 1; i <= 27; i++) {
-      const date = new Date(today);
-      date.setDate(today.getDate() + i);
-      dates.push(date);
-    }
-    
-    return dates;
   };
 
   const toggleBlock = (date, block) => {
     const key = `${date.toDateString()}-${block}`;
     setSelectedBlocks(prev => {
       const newBlocks = { ...prev };
-      if (newBlocks[key]?.user === userId) {
+      if (newBlocks[key]?.user === userName) {
         delete newBlocks[key];
       } else {
-        newBlocks[key] = { user: userId, color: userColor };
+        newBlocks[key] = { user: userName, color: userColor };
       }
       return newBlocks;
     });
   };
 
   const isToday = (date) => {
-    const today = new Date();
+    const today = getCurrentDate();
     return date.toDateString() === today.toDateString();
   };
 
   const isPast = (date) => {
-    const today = new Date();
+    const today = getCurrentDate();
     today.setHours(0, 0, 0, 0);
     return date < today;
   };
@@ -165,7 +172,7 @@ const StudioCalendar = () => {
 
         {/* Calendar Grid */}
         <div className="grid grid-cols-7 gap-2">
-          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+          {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
             <div key={day} className="text-center text-sm text-gray-400 py-2">
               {day}
             </div>
