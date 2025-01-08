@@ -18,6 +18,22 @@ const StudioCalendar = () => {
     { id: 'slot3', color: COLORS.green, name: '', taken: false }
   ]);
 
+  // Initialize from localStorage on client-side only
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedUsers = localStorage.getItem('studioUsers');
+      const storedColor = localStorage.getItem('studioUserColor');
+      
+      if (storedUsers) {
+        setUsers(JSON.parse(storedUsers));
+      }
+      if (storedColor) {
+        setUserColor(storedColor);
+        setNamePrompt(false);
+      }
+    }
+  }, []);
+
   const getCurrentDate = () => {
     return new Date(2025, 0, 8); // January 8, 2025 - Replace with new Date() in production
   };
@@ -66,6 +82,11 @@ const StudioCalendar = () => {
       setUserColor(existingUser.color);
       setUserName(name);
       setNamePrompt(false);
+      
+      // Save to localStorage on client-side only
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('studioUserColor', existingUser.color);
+      }
       return;
     }
     
@@ -86,6 +107,12 @@ const StudioCalendar = () => {
       setUserColor(selectedSlot.color);
       setUserName(name);
       setNamePrompt(false);
+
+      // Save to localStorage on client-side only
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('studioUsers', JSON.stringify(newUsers));
+        localStorage.setItem('studioUserColor', selectedSlot.color);
+      }
     } else {
       alert('No available slots. Please try again later.');
     }
